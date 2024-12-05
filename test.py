@@ -165,7 +165,7 @@ if __name__ == '__main__':
         x_coords = x_flat[conf_mask_flat]
         
         # Get colors
-        colors = img[y_coords, x_coords] / 255.0
+        colors = img[y_coords, x_coords]
         
         # Save points and colors
         np.savez(f'points3d_view_{i}.npz', points=points, colors=colors)
