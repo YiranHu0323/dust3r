@@ -82,6 +82,41 @@
 #         pl.plot([x0, x1 + W0], [y0, y1], '-+', color=cmap(i / (n_viz - 1)), scalex=False, scaley=False)
 #     pl.show(block=True)
 
+# from dust3r.inference import inference
+# from dust3r.model import AsymmetricCroCo3DStereo
+# from dust3r.utils.image import load_images
+# from dust3r.image_pairs import make_pairs
+# from dust3r.cloud_opt import global_aligner, GlobalAlignerMode
+# import numpy as np
+
+# if __name__ == '__main__':
+#     device = 'cuda'
+#     batch_size = 1
+#     schedule = 'cosine'
+#     lr = 0.01
+#     niter = 300
+
+#     model_name = "naver/DUSt3R_ViTLarge_BaseDecoder_512_dpt"
+#     model = AsymmetricCroCo3DStereo.from_pretrained(model_name).to(device)
+#     # Use the same image twice
+#     images = load_images(['1stb/0000000000.jpg', '1stb/0000000000.jpg'], size=512)
+    
+#     pairs = make_pairs(images, scene_graph='complete', prefilter=None, symmetrize=True)
+#     output = inference(pairs, model, device, batch_size=batch_size)
+
+#     scene = global_aligner(output, device=device, mode=GlobalAlignerMode.PointCloudOptimizer)
+#     loss = scene.compute_global_alignment(init="mst", niter=niter, schedule=schedule, lr=lr)
+
+#     # Get and save 3D points
+#     pts3d = scene.get_pts3d()
+#     confidence_masks = scene.get_masks()
+    
+#     for i in range(len(pts3d)):
+#         conf_mask = confidence_masks[i].cpu().numpy()
+#         points = pts3d[i].detach().cpu().numpy()[conf_mask]
+#         np.save(f'points3d_view_{i}.npy', points)
+#         print(f'Saved {len(points)} points to points3d_view_{i}.npy')
+
 from dust3r.inference import inference
 from dust3r.model import AsymmetricCroCo3DStereo
 from dust3r.utils.image import load_images
@@ -98,7 +133,6 @@ if __name__ == '__main__':
 
     model_name = "naver/DUSt3R_ViTLarge_BaseDecoder_512_dpt"
     model = AsymmetricCroCo3DStereo.from_pretrained(model_name).to(device)
-    # Use the same image twice
     images = load_images(['1stb/0000000000.jpg', '1stb/0000000000.jpg'], size=512)
     
     pairs = make_pairs(images, scene_graph='complete', prefilter=None, symmetrize=True)
@@ -107,12 +141,20 @@ if __name__ == '__main__':
     scene = global_aligner(output, device=device, mode=GlobalAlignerMode.PointCloudOptimizer)
     loss = scene.compute_global_alignment(init="mst", niter=niter, schedule=schedule, lr=lr)
 
-    # Get and save 3D points
+    # Get points and images
     pts3d = scene.get_pts3d()
     confidence_masks = scene.get_masks()
+    imgs = scene.imgs  # Get the images for colors
     
     for i in range(len(pts3d)):
         conf_mask = confidence_masks[i].cpu().numpy()
         points = pts3d[i].detach().cpu().numpy()[conf_mask]
-        np.save(f'points3d_view_{i}.npy', points)
-        print(f'Saved {len(points)} points to points3d_view_{i}.npy')
+        
+        # Get colors from the image
+        h, w = imgs[i].shape[:2]
+        grid = np.mgrid[0:h, 0:w].transpose(1,2,0)  # Create coordinate grid
+        colors = imgs[i][grid[:,:,0].flatten()[conf_mask], grid[:,:,1].flatten()[conf_mask]] / 255.0
+        
+        # Save both points and colors
+        np.savez(f'points3d_view_{i}.npz', points=points, colors=colors)
+        print(f'Saved {len(points)} points with colors to points3d_view_{i}.npz')
