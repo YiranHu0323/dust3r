@@ -15,7 +15,7 @@ if __name__ == '__main__':
     # you can put the path to a local checkpoint in model_name if needed
     model = AsymmetricCroCo3DStereo.from_pretrained(model_name).to(device)
     # load_images can take a list of images or a directory
-    images = load_images(['root/1stb/0000000000.jpg'], size=512)
+    images = load_images(['1stb/0000000000.jpg'], size=512)
     pairs = make_pairs(images, scene_graph='complete', prefilter=None, symmetrize=True)
     output = inference(pairs, model, device, batch_size=batch_size)
 
