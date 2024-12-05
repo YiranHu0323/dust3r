@@ -150,18 +150,21 @@ if __name__ == '__main__':
         conf_mask = confidence_masks[i].cpu().numpy()
         points = pts3d[i].detach().cpu().numpy()[conf_mask]
         
-        # Get image
+        # Get image and reshape confidence mask
         img = imgs[i]
-        print(f"Image shape: {img.shape}")
-        print(f"Confidence mask shape: {conf_mask.shape}")
+        conf_mask_flat = conf_mask.flatten()
         
-        # Create flattened coordinates first
-        h, w = 288, 512
-        coords = np.stack(np.meshgrid(np.arange(h), np.arange(w), indexing='ij')).reshape(2, -1)
-        y_coords = coords[0][conf_mask]
-        x_coords = coords[1][conf_mask]
+        # Create coordinates
+        h, w = conf_mask.shape
+        y, x = np.meshgrid(np.arange(h), np.arange(w), indexing='ij')
+        y_flat = y.flatten()
+        x_flat = x.flatten()
         
-        # Get colors using the coordinates
+        # Apply mask
+        y_coords = y_flat[conf_mask_flat]
+        x_coords = x_flat[conf_mask_flat]
+        
+        # Get colors
         colors = img[y_coords, x_coords] / 255.0
         
         # Save points and colors
