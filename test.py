@@ -141,7 +141,6 @@ if __name__ == '__main__':
     scene = global_aligner(output, device=device, mode=GlobalAlignerMode.PointCloudOptimizer)
     loss = scene.compute_global_alignment(init="mst", niter=niter, schedule=schedule, lr=lr)
 
-    # Get points and images
     pts3d = scene.get_pts3d()
     confidence_masks = scene.get_masks()
     imgs = scene.imgs
@@ -150,18 +149,16 @@ if __name__ == '__main__':
         conf_mask = confidence_masks[i].cpu().numpy()
         points = pts3d[i].detach().cpu().numpy()[conf_mask]
         
-        # Handle image colors properly
+        # Handle image colors
         img = imgs[i]
-        if len(img.shape) == 1:  # If image is flattened
-            img = img.reshape(288, 512, 3)  # Reshape to original dimensions
+        h, w = 288, 512  # Known dimensions after resizing
         
-        h, w = img.shape[:2]
-        y, x = np.mgrid[0:h, 0:w]
-        y = y.flatten()[conf_mask]
-        x = x.flatten()[conf_mask]
-        colors = img[y, x] / 255.0
+        y, x = np.meshgrid(np.arange(h), np.arange(w), indexing='ij')
+        y_flat = y.ravel()[conf_mask]
+        x_flat = x.ravel()[conf_mask]
         
-        # Save both points and colors
+        colors = img[y_flat, x_flat] / 255.0
+        
+        # Save points and colors
         np.savez(f'points3d_view_{i}.npz', points=points, colors=colors)
         print(f'Saved {len(points)} points with colors to points3d_view_{i}.npz')
-        print(f'Points shape: {points.shape}, Colors shape: {colors.shape}')
