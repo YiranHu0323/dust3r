@@ -144,17 +144,24 @@ if __name__ == '__main__':
     # Get points and images
     pts3d = scene.get_pts3d()
     confidence_masks = scene.get_masks()
-    imgs = scene.imgs  # Get the images for colors
+    imgs = scene.imgs
     
     for i in range(len(pts3d)):
         conf_mask = confidence_masks[i].cpu().numpy()
         points = pts3d[i].detach().cpu().numpy()[conf_mask]
         
-        # Get colors from the image
-        h, w = imgs[i].shape[:2]
-        grid = np.mgrid[0:h, 0:w].transpose(1,2,0)  # Create coordinate grid
-        colors = imgs[i][grid[:,:,0].flatten()[conf_mask], grid[:,:,1].flatten()[conf_mask]] / 255.0
+        # Handle image colors properly
+        img = imgs[i]
+        if len(img.shape) == 1:  # If image is flattened
+            img = img.reshape(288, 512, 3)  # Reshape to original dimensions
+        
+        h, w = img.shape[:2]
+        y, x = np.mgrid[0:h, 0:w]
+        y = y.flatten()[conf_mask]
+        x = x.flatten()[conf_mask]
+        colors = img[y, x] / 255.0
         
         # Save both points and colors
         np.savez(f'points3d_view_{i}.npz', points=points, colors=colors)
         print(f'Saved {len(points)} points with colors to points3d_view_{i}.npz')
+        print(f'Points shape: {points.shape}, Colors shape: {colors.shape}')
